@@ -124,9 +124,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounter do
       String.starts_with?(line, "get()") or      # Getter method
       String.starts_with?(line, "set(") or       # Setter method
       String.starts_with?(line, "fun ") or       # Function declaration
-      String.contains?(line, "->") or            # Lambda arrow
-      String.contains?(line, "= {") or           # Lambda assignment
-      String.contains?(line, "runBlocking")      # Coroutine builder
+      (String.contains?(line, "->") and not String.contains?(line, "."))  # Lambda declaration without method call
     ) and not String.contains?(line, "@")        # Exclude annotations
   end
 end

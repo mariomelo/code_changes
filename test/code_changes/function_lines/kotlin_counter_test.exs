@@ -129,7 +129,8 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
       }
       """
 
-      assert KotlinCounter.count_lines(code, 1, 13) == [4]
+      # A função principal deve incluir as linhas das lambdas, exceto suas declarações
+      assert KotlinCounter.count_lines(code, 1, 13) == [6]  # prepareItem, callback, processAsync e as linhas de chamada forEach, runBlocking e launch
     end
   end
 end
