@@ -6,7 +6,7 @@ defmodule CodeChangesWeb.HomeLive do
     {:ok, assign(socket, 
       github_token: nil,
       repo_url: nil,
-      commit_info: nil,
+      commit_details: nil,
       error: nil
     )}
   end
@@ -20,28 +20,28 @@ defmodule CodeChangesWeb.HomeLive do
 
     case repo do
       nil ->
-        {:noreply, assign(socket, error: "URL do repositório inválida", commit_info: nil)}
+        {:noreply, assign(socket, error: "URL do repositório inválida", commit_details: nil)}
       repo ->
-        case Client.getLastCommitInfo(repo, token) do
-          {:ok, commit_info} ->
+        case Client.getCommitDetails(repo, token) do
+          {:ok, commit_details} ->
             {:noreply, assign(socket, 
-              commit_info: commit_info,
+              commit_details: commit_details,
               error: nil
             )}
           {:error, :unauthorized} ->
             {:noreply, assign(socket, 
               error: "Token do GitHub inválido",
-              commit_info: nil
+              commit_details: nil
             )}
-          {:error, :repository_not_found} ->
+          {:error, :commit_not_found} ->
             {:noreply, assign(socket, 
-              error: "Repositório não encontrado",
-              commit_info: nil
+              error: "Commit não encontrado",
+              commit_details: nil
             )}
           {:error, _} ->
             {:noreply, assign(socket, 
-              error: "Erro ao buscar informações do repositório",
-              commit_info: nil
+              error: "Erro ao buscar informações do commit",
+              commit_details: nil
             )}
         end
     end

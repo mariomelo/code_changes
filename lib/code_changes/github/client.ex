@@ -4,47 +4,32 @@ defmodule CodeChanges.Github.Client do
   """
   @github_api_url "https://api.github.com"
 
-  @doc """
-  Retorna informações sobre o último commit de um repositório, incluindo:
-  - Arquivos alterados
-  - Nome do autor
-  - Mensagem do commit
-
-  ## Parâmetros
-    - repo: URL do repositório no formato "owner/repo"
-    - api_key: Token de acesso à API do GitHub
-
-  ## Exemplo
-      iex> CodeChanges.Github.Client.getLastCommitInfo("elixir-lang/elixir", "ghp_your_token")
-      {:ok, %{
-        author: "John Doe",
-        files: ["lib/example.ex", "test/example_test.ex"],
-        message: "Fix bug in example module"
-      }}
-  """
-  def getLastCommitInfo(repo, api_key) do
-    # First we get the last commit
-    commits_url = "#{@github_api_url}/repos/#{repo}/commits?per_page=1"
+  def getCommitDetails(repo, api_key, commit_sha \\ "HEAD") do
+    commit_url = "#{@github_api_url}/repos/#{repo}/commits/#{commit_sha}"
     headers = [
       {"Authorization", "Bearer #{api_key}"},
       {"Accept", "application/vnd.github.v3+json"}
     ]
 
-    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(commits_url, headers),
-         {:ok, [last_commit | _]} <- Jason.decode(body),
-         commit_sha <- last_commit["sha"],
-         # Agora pegamos os detalhes completos do commit
-         commit_url <- "#{@github_api_url}/repos/#{repo}/commits/#{commit_sha}",
-         {:ok, %HTTPoison.Response{status_code: 200, body: commit_body}} <- HTTPoison.get(commit_url, headers),
-         {:ok, commit_data} <- Jason.decode(commit_body) do
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(commit_url, headers),
+         {:ok, commit_data} <- Jason.decode(body) do
 
       files = commit_data["files"]
-             |> Enum.map(fn file -> file["filename"] end)
+             |> Enum.map(fn file ->
+               %{
+                 filename: file["filename"],
+                 patch: file["patch"]
+               }
+             end)
+
+      parent_sha = case commit_data["parents"] do
+        [first_parent | _] -> first_parent["sha"]
+        _ -> nil
+      end
 
       result = %{
-        author: commit_data["commit"]["author"]["name"],
         files: files,
-        message: commit_data["commit"]["message"]
+        parent_sha: parent_sha
       }
 
       {:ok, result}
@@ -52,11 +37,12 @@ defmodule CodeChanges.Github.Client do
       {:ok, %HTTPoison.Response{status_code: 401}} ->
         {:error, :unauthorized}
 
-      {:ok, %HTTPoison.Response{status_code: 404}} ->
-        {:error, :repository_not_found}
+      {:ok, %HTTPoison.Response{status_code: 422}} ->
+        {:error, :commit_not_found}
 
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, reason}
+
       _ ->
         {:error, :unknown_error}
     end
