@@ -9,11 +9,11 @@ defmodule CodeChanges.Github.Client do
   - Arquivos alterados
   - Nome do autor
   - Mensagem do commit
-  
+
   ## Parâmetros
     - repo: URL do repositório no formato "owner/repo"
     - api_key: Token de acesso à API do GitHub
-  
+
   ## Exemplo
       iex> CodeChanges.Github.Client.getLastCommitInfo("elixir-lang/elixir", "ghp_your_token")
       {:ok, %{
@@ -23,7 +23,7 @@ defmodule CodeChanges.Github.Client do
       }}
   """
   def getLastCommitInfo(repo, api_key) do
-    # Primeiro, pegamos o SHA do último commit
+    # First we get the last commit
     commits_url = "#{@github_api_url}/repos/#{repo}/commits?per_page=1"
     headers = [
       {"Authorization", "Bearer #{api_key}"},
@@ -37,10 +37,10 @@ defmodule CodeChanges.Github.Client do
          commit_url <- "#{@github_api_url}/repos/#{repo}/commits/#{commit_sha}",
          {:ok, %HTTPoison.Response{status_code: 200, body: commit_body}} <- HTTPoison.get(commit_url, headers),
          {:ok, commit_data} <- Jason.decode(commit_body) do
-      
+
       files = commit_data["files"]
              |> Enum.map(fn file -> file["filename"] end)
-      
+
       result = %{
         author: commit_data["commit"]["author"]["name"],
         files: files,
@@ -51,13 +51,12 @@ defmodule CodeChanges.Github.Client do
     else
       {:ok, %HTTPoison.Response{status_code: 401}} ->
         {:error, :unauthorized}
-      
+
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:error, :repository_not_found}
-      
+
       {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, reason}
-      
       _ ->
         {:error, :unknown_error}
     end

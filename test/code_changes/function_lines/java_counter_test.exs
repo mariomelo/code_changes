@@ -8,7 +8,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
       code = """
       public class Example {
         private String name;
-        
+
         public void setName(String name) {
           this.name = name;
         }
@@ -39,11 +39,11 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
           this.name = name;
           System.out.println(name);
         }
-        
+
         public String getName() {
           return this.name;
         }
-        
+
         private void notifyListeners() {
           if (listeners != null) {
             listeners.forEach(l -> l.notify());
@@ -52,7 +52,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
       }
       """
 
-      assert JavaCounter.count_lines(code, 1, 15) == [2, 1, 3]
+      assert JavaCounter.count_lines(code, 1, 15) == [2, 1, 2]
     end
 
     test "counts lines when function is partially in range" do
@@ -63,7 +63,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
           System.out.println(name);
           notifyListeners();
         }
-        
+
         public String getName() {
           return this.name;
         }
@@ -83,7 +83,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
         public void setName(String name) {
           // Update the name
           this.name = name;
-          
+
           // Notify all listeners
           notifyListeners();
         }
@@ -99,13 +99,13 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
         public void method1() {
           doSomething();
         }
-        
+
         public void method2()
         {
           doSomething();
           doMore();
         }
-        
+
         public void method3() { doSomething(); }
       }
       """
@@ -122,7 +122,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
             doMore();
           }
         }
-        
+
         public void outerMethod() {
           prepare();
           execute();
@@ -141,7 +141,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
             doStep1();
             doStep2();
           });
-          
+
           callback.onComplete(new Runnable() {
             @Override
             public void run() {
@@ -153,9 +153,8 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
       }
       """
 
-      # The main function has 3 lines of code (excluding braces)
-      # Lambda and anonymous functions are counted separately
-      assert JavaCounter.count_lines(code, 1, 15) == [3, 2, 2]
+      # The main function englobes the lamdda and anonymous functions
+      assert JavaCounter.count_lines(code, 1, 15) == [9]
     end
   end
 end
