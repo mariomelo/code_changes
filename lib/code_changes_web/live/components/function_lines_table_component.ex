@@ -2,48 +2,58 @@ defmodule CodeChangesWeb.FunctionLinesTableComponent do
   use CodeChangesWeb, :live_component
 
   def update(assigns, socket) do
-    total_changes = assigns.data
-    |> Map.values()
-    |> Enum.sum()
+    max_line_count = case Map.keys(assigns.data) do
+      [] -> 0
+      keys -> Enum.max(keys)
+    end
 
-    data_with_percentages = assigns.data
-    |> Enum.map(fn {lines, times_changed} ->
-      percentage = if total_changes > 0, do: times_changed / total_changes * 100, else: 0
-      {lines, times_changed, percentage}
-    end)
-    |> Enum.sort_by(fn {lines, _, _} -> lines end)
+    # Calcular o total de ocorrências para percentuais
+    total_occurrences = Enum.sum(Map.values(assigns.data))
+
+    # Calcular percentuais para cada linha
+    line_percentages = if total_occurrences > 0 do
+      Map.new(1..max_line_count, fn line ->
+        count = Map.get(assigns.data, line, 0)
+        percentage = count * 100 / total_occurrences
+        {line, percentage}
+      end)
+    else
+      %{}
+    end
 
     {:ok,
      socket
-     |> assign(:data_with_percentages, data_with_percentages)}
+     |> assign(:line_counts, assigns.data)
+     |> assign(:line_percentages, line_percentages)
+     |> assign(:max_line_count, max_line_count)}
   end
 
   def render(assigns) do
     ~H"""
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+    <div>
+      <table class="min-w-full text-sm font-mono">
+        <thead>
           <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Function Lines
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Times Changed
-            </th>
+            <th class="text-left px-2 text-gray-600">Linhas</th>
+            <th class="text-left px-2 text-gray-600">Ocorrências</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <%= for {lines, times_changed, percentage} <- @data_with_percentages do %>
+        <tbody>
+          <%= if @max_line_count > 0 do %>
+            <%= for line_count <- 1..@max_line_count do %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-2 text-gray-800"><%= line_count %></td>
+                <td class="px-2 text-gray-800 relative">
+                  <div class="absolute inset-0 transition-all duration-500 ease-in-out bg-indigo-50"
+                       style={"width: #{Map.get(@line_percentages, line_count, 0)}%"}>
+                  </div>
+                  <span class="relative z-10"><%= Map.get(@line_counts, line_count, 0) %></span>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
             <tr>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <%= lines %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 relative">
-                <div class="absolute inset-0 transition-all duration-500 ease-in-out bg-indigo-100"
-                     style={"width: #{percentage}%"}>
-                </div>
-                <span class="relative z-10"><%= times_changed %></span>
-              </td>
+              <td colspan="2" class="px-2 text-gray-500 text-center">Nenhum dado disponível</td>
             </tr>
           <% end %>
         </tbody>

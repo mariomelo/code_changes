@@ -4,7 +4,32 @@ defmodule CodeChanges.Github.Client do
   """
   @github_api_url "https://api.github.com"
 
+  # Extensões de arquivo suportadas para análise
+  @supported_extensions ~w(.java .kt .kts)
+
   def getCommitDetails(repo, api_key, commit_sha \\ "HEAD") do
+    with {:ok, commit_details} <- parse_commit_details(repo, api_key, commit_sha),
+         {:ok, filteredcommit_details} <- filter_commit_files(commit_details) do
+      {:ok, filteredcommit_details}
+    else
+      error -> error
+    end
+  end
+
+  defp filter_commit_files(commit_details) do
+    filtered_files = commit_details.files
+    |> Enum.filter(fn file ->
+      # Pegar a extensão do arquivo
+      ext = Path.extname(file.filename)
+      # Verificar se é uma extensão suportada e se o arquivo foi modificado
+      ext in @supported_extensions and file.status == "modified"
+    end)
+
+    # Retornar o commit_details atualizado com apenas os arquivos filtrados
+    {:ok, %{commit_details | files: filtered_files}}
+  end
+
+  defp parse_commit_details(repo, api_key, commit_sha) do
     commit_url = "#{@github_api_url}/repos/#{repo}/commits/#{commit_sha}"
     headers = [
       {"Authorization", "Bearer #{api_key}"},
@@ -19,7 +44,8 @@ defmodule CodeChanges.Github.Client do
                %{
                  filename: file["filename"],
                  patch: file["patch"],
-                 raw_url: file["raw_url"]
+                 raw_url: file["raw_url"],
+                 status: file["status"]
                }
              end)
 
