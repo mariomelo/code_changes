@@ -72,11 +72,14 @@
               </h4>
               
               <div class="space-y-4">
-                <%= if patch.patches do %>
+                <%= if patch.sizes_and_changes do %>
                   <div>
-                    <h5 class="text-xs font-medium text-gray-700 mb-1">Patch Changes:</h5>
-                    <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto"><code><%= patch.patches %></code></pre>
-                    
+                    <h5 class="text-xs font-medium text-gray-700 mb-1">Function Sizes:</h5>
+                    <ul> 
+                      <%= for function_size <- patch.sizes_and_changes do %>
+                        <li><strong><%= function_size %></strong> lines</li>
+                      <% end %>
+                    </ul>
                   </div>
                 <% end %>
 

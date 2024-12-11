@@ -20,5 +20,5 @@ defmodule CodeChangesWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext.Backend, otp_app: :code_changes
+  use Gettext, otp_app: :code_changes
 end

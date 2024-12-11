@@ -44,10 +44,10 @@ defmodule CodeChanges.Github.PatchAnalyzer do
 
   defp count_function_lines(filename, changes, file_contents) do
     Enum.map(changes, fn change ->
-      IO.inspect(change, label: "Change")
       Counter.Helper.get_language_from_url(filename)
       |> Counter.count_lines(file_contents, change.start_line, change.end_line)
     end)
+    |> List.flatten()
   end
 
   def analyze_patches(commit_details) do
@@ -58,14 +58,14 @@ defmodule CodeChanges.Github.PatchAnalyzer do
       lines_changed = extract_patch_content(file.patch)
 
       functions_changed = count_function_lines(file.filename, lines_changed, original_file_content)
+      |> IO.inspect(label: "Functions Changed")
 
       %Patch{
         parent_sha: commit_details.parent_sha,
         filename: file.filename,
-        patches: functions_changed,
+        sizes_and_changes: functions_changed,
         file_contents: original_file_content
       }
-      |> IO.inspect(label: "Patch")
     end)
 
   end
