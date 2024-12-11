@@ -29,6 +29,10 @@ defmodule CodeChanges.Github.Client do
       end
 
       result = %{
+        sha: commit_data["sha"],
+        commit: %{
+          "author" => commit_data["commit"]["author"]
+        },
         files: files,
         parent_sha: parent_sha
       }

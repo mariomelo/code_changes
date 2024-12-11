@@ -3,7 +3,14 @@
     <h1 class="text-4xl font-bold text-center text-gray-900 mb-8">Code Changes</h1>
     
     <div class="bg-white shadow rounded-lg p-6 mb-6">
-      <form phx-submit="submit" class="space-y-6">
+      <.form
+        for={%{}}
+        as={:repo}
+        id="repo-form"
+        phx-change="validate"
+        phx-submit="analyze"
+        class="space-y-6"
+      >
         <div>
           <label for="github_token" class="block text-sm font-medium text-gray-700">
             GitHub API Token
@@ -11,7 +18,7 @@
           <div class="mt-1">
             <input
               type="password"
-              name="github_token"
+              name="repo[token]"
               id="github_token"
               value={@github_token}
               required
@@ -27,7 +34,7 @@
           <div class="mt-1">
             <input
               type="text"
-              name="repo_url"
+              name="repo[url]"
               id="repo_url"
               value={@repo_url}
               required
@@ -40,12 +47,13 @@
         <div>
           <button
             type="submit"
-            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={@status == :running}
+            class={"w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white #{if @status == :running, do: "bg-indigo-400 cursor-not-allowed", else: "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"}"}
           >
-            Go!
+            <%= if @status == :running, do: "Processing...", else: "Go!" %>
           </button>
         </div>
-      </form>
+      </.form>
     </div>
 
     <%= if @error do %>
@@ -60,38 +68,44 @@
       </div>
     <% end %>
 
-    <%= if @commit_details do %>
+    <%= if @current_commit do %>
+      <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold text-gray-900">Current Commit</h3>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="space-y-2">
+              <p class="text-sm text-gray-600">
+                <span class="font-medium">SHA:</span> <%= @current_commit.sha %>
+              </p>
+              <p class="text-sm text-gray-600">
+                <span class="font-medium">Author:</span> <%= @current_commit.author %>
+              </p>
+              <p class="text-sm text-gray-600">
+                <span class="font-medium">Date:</span> <%= @current_commit.date %>
+              </p>
+            </div>
+          </div>
+          
+          <button
+            phx-click="next_commit"
+            disabled={@status == :running}
+            class={"mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white #{if @status == :running, do: "bg-green-400 cursor-not-allowed", else: "bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"}"}
+          >
+            <%= if @status == :running, do: "Processing...", else: "Next Commit" %>
+          </button>
+        </div>
+      </div>
+    <% end %>
+
+    <%= if map_size(@line_counts) > 0 do %>
       <div class="bg-white shadow rounded-lg p-6">
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold text-gray-900">Analyzed Changes</h3>
-          <%= for patch <- @commit_details do %>
-            <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-gray-900 mb-2">
-                <%= patch.filename %>
-                <span class="text-xs text-gray-500">(Parent SHA: <%= patch.parent_sha %>)</span>
-              </h4>
-              
-              <div class="space-y-4">
-                <%= if patch.sizes_and_changes do %>
-                  <div>
-                    <h5 class="text-xs font-medium text-gray-700 mb-1">Function Sizes:</h5>
-                    <ul> 
-                      <%= for function_size <- patch.sizes_and_changes do %>
-                        <li><strong><%= function_size %></strong> lines</li>
-                      <% end %>
-                    </ul>
-                  </div>
-                <% end %>
-
-                <%= if patch.file_contents do %>
-                  <div>
-                    <h5 class="text-xs font-medium text-gray-700 mb-1">Original File Contents:</h5>
-                    <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto"><code><%= patch.file_contents %></code></pre>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
+          <h3 class="text-lg font-semibold text-gray-900">Function Lines Distribution</h3>
+          <.live_component
+            module={CodeChangesWeb.FunctionLinesTableComponent}
+            id="function-lines-table"
+            data={@line_counts}
+          />
         </div>
       </div>
     <% end %>
