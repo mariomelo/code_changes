@@ -3,7 +3,6 @@ defmodule CodeChanges.Github.PatchAnalyzer do
   alias CodeChanges.Github
   alias CodeChanges.Github.Patch
   alias CodeChanges.FunctionLines.Counter
-  alias CodeChanges.FunctionLines.Counter.Helper
 
   @github_context_window 3
 
