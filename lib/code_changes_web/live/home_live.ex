@@ -14,10 +14,6 @@ defmodule CodeChangesWeb.HomeLive do
      |> assign(:line_counts, %{})}
   end
 
-  def handle_event("validate", %{"repo" => %{"url" => url, "token" => token}}, socket) do
-    {:noreply, socket |> assign(:repo_url, url) |> assign(:github_token, token)}
-  end
-
   def handle_event("analyze", %{"repo" => %{"url" => url, "token" => token}}, socket) do
     unique_code = generate_unique_code()
 
@@ -33,6 +29,8 @@ defmodule CodeChangesWeb.HomeLive do
 
         {:noreply,
          socket
+         |> assign(:repo_url, url)
+         |> assign(:github_token, token)
          |> assign(:server_pid, server_pid)
          |> assign(:unique_code, unique_code)
          |> assign(:status, :running)}
@@ -51,14 +49,17 @@ defmodule CodeChangesWeb.HomeLive do
   end
 
   def handle_info({:state_updated, state}, socket) do
+    current_commit = if state.current_sha do
+      %{
+        sha: state.current_sha,
+        files: state.modified_files || []
+      }
+    end
+
     {:noreply,
      socket
      |> assign(:status, state.status)
-     |> assign(:current_commit, %{
-       sha: state.current_sha,
-       author: state.current_author,
-       date: state.commit_date
-     })
+     |> assign(:current_commit, current_commit)
      |> assign(:line_counts, state.line_counts)}
   end
 
@@ -75,5 +76,22 @@ defmodule CodeChangesWeb.HomeLive do
     :crypto.strong_rand_bytes(16)
     |> Base.url_encode64()
     |> binary_part(0, 16)
+  end
+
+  defp get_sorted_counts(line_counts) do
+    line_counts
+    |> Enum.sort_by(fn {lines, _count} -> lines end)
+  end
+
+  defp get_percentage(count, line_counts) do
+    total_count = line_counts |> Map.values() |> Enum.sum()
+    Float.round(count / total_count * 100, 1)
+  end
+
+  defp extract_repo(url) do
+    case Regex.run(~r/github\.com\/([^\/]+\/[^\/]+)(?:\.git)?/, url) do
+      [_, repo] -> repo
+      _ -> "unknown/repo"
+    end
   end
 end

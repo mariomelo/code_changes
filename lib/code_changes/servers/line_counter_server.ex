@@ -14,7 +14,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
     unique_code: String.t(),
     repo_url: String.t(),
     github_token: String.t(),
-    line_counts: %{integer() => integer()}
+    line_counts: %{integer() => integer()},
+    modified_files: [String.t()]
   }
 
   defstruct status: :idle,
@@ -26,7 +27,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
             unique_code: nil,
             repo_url: nil,
             github_token: nil,
-            line_counts: %{}
+            line_counts: %{},
+            modified_files: []
 
   # Client API
   def start_link(opts) do
@@ -108,7 +110,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
               current_author: get_in(commit_details, ["commit", "author", "name"]),
               commit_date: parse_github_date(get_in(commit_details, ["commit", "author", "date"])),
               last_sha: commit_details.parent_sha,
-              line_counts: new_line_counts
+              line_counts: new_line_counts,
+              modified_files: Enum.map(commit_details.files, & &1.filename)
             }
 
             broadcast_state_update(updated_state)
@@ -155,7 +158,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
         current_sha: state.current_sha,
         current_author: state.current_author,
         commit_date: state.commit_date,
-        line_counts: state.line_counts
+        line_counts: state.line_counts,
+        modified_files: state.modified_files
       }}
     )
   end
