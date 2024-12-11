@@ -18,7 +18,8 @@ defmodule CodeChanges.Github.Client do
              |> Enum.map(fn file ->
                %{
                  filename: file["filename"],
-                 patch: file["patch"]
+                 patch: file["patch"],
+                 raw_url: file["raw_url"]
                }
              end)
 
@@ -45,6 +46,18 @@ defmodule CodeChanges.Github.Client do
 
       _ ->
         {:error, :unknown_error}
+    end
+  end
+
+  def fetch_file_content(url) do
+    case HTTPoison.get(url, [{"Accept", "*/*"}], [follow_redirect: true]) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        body
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:error, :file_not_found}
+      response ->
+        IO.inspect(response)
+        {:error, :file_not_found}
     end
   end
 end

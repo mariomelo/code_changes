@@ -1,9 +1,10 @@
 defmodule CodeChangesWeb.HomeLive do
   use CodeChangesWeb, :live_view
   alias CodeChanges.Github.Client
+  alias CodeChanges.Github.PatchAnalyzer
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, 
+    {:ok, assign(socket,
       github_token: System.get_env("GITHUB_TOKEN"),
       repo_url: "https://github.com/mariomelo/code_changes_sample",
       commit_details: nil,
@@ -24,22 +25,22 @@ defmodule CodeChangesWeb.HomeLive do
       repo ->
         case Client.getCommitDetails(repo, token) do
           {:ok, commit_details} ->
-            {:noreply, assign(socket, 
-              commit_details: commit_details,
+            {:noreply, assign(socket,
+              commit_details: PatchAnalyzer.analyze_patches(commit_details),
               error: nil
             )}
           {:error, :unauthorized} ->
-            {:noreply, assign(socket, 
+            {:noreply, assign(socket,
               error: "Token do GitHub inválido",
               commit_details: nil
             )}
           {:error, :commit_not_found} ->
-            {:noreply, assign(socket, 
+            {:noreply, assign(socket,
               error: "Commit não encontrado",
               commit_details: nil
             )}
           {:error, _} ->
-            {:noreply, assign(socket, 
+            {:noreply, assign(socket,
               error: "Erro ao buscar informações do commit",
               commit_details: nil
             )}

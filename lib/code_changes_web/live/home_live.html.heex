@@ -62,19 +62,30 @@
 
     <%= if @commit_details do %>
       <div class="bg-white shadow rounded-lg p-6">
-        <div class="mb-4">
-          <h2 class="text-lg font-semibold text-gray-900">Commit Details</h2>
-          <p class="text-sm text-gray-500">Parent SHA: <%= @commit_details.parent_sha %></p>
-        </div>
-
         <div class="space-y-4">
-          <h3 class="text-md font-medium text-gray-900">Modified Files</h3>
-          <%= for file <- @commit_details.files do %>
+          <h3 class="text-lg font-semibold text-gray-900">Analyzed Changes</h3>
+          <%= for patch <- @commit_details do %>
             <div class="bg-gray-50 rounded-lg p-4">
-              <h4 class="text-sm font-medium text-gray-900 mb-2"><%= file.filename %></h4>
-              <%= if file.patch do %>
-                <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto"><code><%= file.patch %></code></pre>
-              <% end %>
+              <h4 class="text-sm font-medium text-gray-900 mb-2">
+                <%= patch.filename %>
+                <span class="text-xs text-gray-500">(Parent SHA: <%= patch.parent_sha %>)</span>
+              </h4>
+              
+              <div class="space-y-4">
+                <%= if patch.patches do %>
+                  <div>
+                    <h5 class="text-xs font-medium text-gray-700 mb-1">Patch Changes:</h5>
+                    <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto"><code><%= patch.patches %></code></pre>
+                  </div>
+                <% end %>
+
+                <%= if patch.file_contents do %>
+                  <div>
+                    <h5 class="text-xs font-medium text-gray-700 mb-1">Original File Contents:</h5>
+                    <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto"><code><%= patch.file_contents %></code></pre>
+                  </div>
+                <% end %>
+              </div>
             </div>
           <% end %>
         </div>
