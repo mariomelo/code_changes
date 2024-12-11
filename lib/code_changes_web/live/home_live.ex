@@ -4,8 +4,8 @@ defmodule CodeChangesWeb.HomeLive do
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, 
-      github_token: nil,
-      repo_url: nil,
+      github_token: System.get_env("GITHUB_TOKEN"),
+      repo_url: "https://github.com/mariomelo/code_changes_sample",
       commit_details: nil,
       error: nil
     )}
