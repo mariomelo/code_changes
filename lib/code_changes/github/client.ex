@@ -59,10 +59,16 @@ defmodule CodeChanges.Github.Client do
     commit_url = "#{@github_api_url}/repos/#{repo}/commits/#{commit_sha}"
     Logger.debug("Fetching commit details from #{commit_url}")
     
-    headers = [
-      {"Authorization", "Bearer #{api_key}"},
-      {"Accept", "application/vnd.github.v3+json"}
-    ]
+    headers = if api_key && api_key != "" do
+      [
+        {"Authorization", "token #{api_key}"},
+        {"Accept", "application/vnd.github.v3+json"}
+      ]
+    else
+      [
+        {"Accept", "application/vnd.github.v3+json"}
+      ]
+    end
 
     with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <- HTTPoison.get(commit_url, headers),
          {:ok, commit_data} <- Jason.decode(body) do
