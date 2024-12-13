@@ -1,8 +1,8 @@
 defmodule CodeChanges.Github.PatchAnalyzer do
-
   alias CodeChanges.Github
   alias CodeChanges.Github.Patch
   alias CodeChanges.FunctionLines.Counter
+  require Logger
 
   @github_context_window 3
 
@@ -16,9 +16,20 @@ defmodule CodeChanges.Github.PatchAnalyzer do
   end
 
   defp extract_patch_content(patch) do
-    Regex.scan(~r/@@ .+ @@/, patch)
-    |> List.flatten()
-    |> get_line_numbers()
+    # Guard against nil patches
+    if is_nil(patch) do
+      []
+    else
+      Regex.scan(~r/@@ .+ @@/, patch, [])
+      |> Enum.map(fn [hunk_header] ->
+        String.split(hunk_header, " ")
+        |> Enum.at(1)
+        |> String.slice(1..-1)
+        |> String.split(",", trim: true)
+        |> List.to_tuple()
+      end)
+      |> calculate_lines_changed()
+    end
   end
 
   defp get_line_numbers(patch_lines) do
@@ -51,14 +62,19 @@ defmodule CodeChanges.Github.PatchAnalyzer do
   end
 
   def analyze_patches(commit_details) do
-
     commit_details.files
     |> Enum.map(fn file ->
       original_file_content = fetch_original_file_content(file.raw_url, commit_details.parent_sha)
-      lines_changed = extract_patch_content(file.patch)
+      
+      # Only try to extract patch content if we have a patch
+      lines_changed = if file.patch do
+        extract_patch_content(file.patch)
+      else
+        []
+      end
 
       functions_changed = count_function_lines(file.filename, lines_changed, original_file_content)
-      |> IO.inspect(label: "Functions Changed")
+      |> IO.inspect(label: "Functions Changed for #{file.filename}")
 
       %Patch{
         parent_sha: commit_details.parent_sha,
@@ -67,7 +83,6 @@ defmodule CodeChanges.Github.PatchAnalyzer do
         file_contents: original_file_content
       }
     end)
-
   end
 
 end

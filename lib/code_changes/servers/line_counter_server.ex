@@ -5,7 +5,7 @@ defmodule CodeChanges.Servers.LineCounterServer do
   alias CodeChanges.Github.{Client, PatchAnalyzer}
 
   @type t :: %__MODULE__{
-    status: :idle | :running | :error,
+    status: :idle | :running | :error | :completed,
     error_message: String.t() | nil,
     current_sha: String.t() | nil,
     current_author: String.t() | nil,
@@ -141,6 +141,13 @@ defmodule CodeChanges.Servers.LineCounterServer do
                   end)
                 end)
 
+              # Check if we've reached the first commit (no parent)
+              {status, message} = if commit_details.parent_sha == nil do
+                {:completed, "Reached the first commit of the repository"}
+              else
+                {:idle, nil}
+              end
+
               new_state = %{state |
                 current_sha: commit_details.sha,
                 current_author: get_in(commit_details, ["commit", "author", "name"]),
@@ -149,14 +156,17 @@ defmodule CodeChanges.Servers.LineCounterServer do
                 line_counts: new_line_counts,
                 modified_files: Enum.map(commit_details.files, & &1.filename),
                 commits_processed: state.commits_processed + 1,
-                status: :idle
+                status: status
               }
 
               broadcast_state(state.unique_code, new_state)
               
-              # Se ainda não processamos todos os commits, continua automaticamente
-              if new_state.commits_processed < new_state.commit_count do
+              # Only continue if we have more commits to process and haven't reached the first commit
+              if status != :completed && new_state.commits_processed < new_state.commit_count do
                 Process.send_after(self(), :process_commit, 100)  # pequeno delay para não sobrecarregar
+              else
+                # Broadcast completion message if we reached the first commit
+                if message, do: broadcast_status(state.unique_code, status, message)
               end
               
               {:noreply, new_state}

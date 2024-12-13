@@ -13,6 +13,7 @@ defmodule CodeChangesWeb.HomeLive do
      |> assign(:commits_processed, 0)
      |> assign(:status, :idle)
      |> assign(:error, nil)
+     |> assign(:completion_message, nil)
      |> assign(:current_commit, nil)
      |> assign(:line_counts, %{})}
   end
@@ -76,7 +77,8 @@ defmodule CodeChangesWeb.HomeLive do
     socket =
       socket
       |> assign(:status, status)
-      |> assign(:error, if(status == :error, do: message, else: nil))
+      |> assign(:error, if(status == :error, do: message))
+      |> assign(:completion_message, if(status == :completed, do: message))
 
     {:noreply, socket}
   end
