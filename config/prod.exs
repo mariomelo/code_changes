@@ -6,7 +6,10 @@ import Config
 # which you should run after static files are built and
 # before starting your production server.
 config :code_changes, CodeChangesWeb.Endpoint,
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  url: [host: "code-changes.onrender.com", port: 443, scheme: "https"],
+  check_origin: ["https://code-changes.onrender.com"],
+  cache_static_manifest: "priv/static/cache_manifest.json",
+  force_ssl: [rewrite_on: [:x_forwarded_proto]]
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: CodeChanges.Finch
