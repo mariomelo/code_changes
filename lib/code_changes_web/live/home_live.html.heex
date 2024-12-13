@@ -18,14 +18,14 @@
               </div>
               <div>
                 <label for="starting-point" class="block text-sm font-medium text-gray-700">Starting point (Commit SHA)</label>
-                <input type="text" name="repo[starting_point]" id="starting-point" value="HEAD" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                <input type="text" name="repo[starting_point]" id="starting-point" value={@starting_point} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
               </div>
               <div>
                 <label for="commit-count" class="block text-sm font-medium text-gray-700">Number of Commits to evaluate</label>
                 <input type="number" name="repo[commit_count]" id="commit-count" value="10" min="1" max="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
               </div>
               <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Start Analysis
+                <%= get_analysis_button_text(@status, @line_counts) %>
               </button>
             </div>
           </form>

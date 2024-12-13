@@ -43,6 +43,7 @@ defmodule CodeChanges.Servers.LineCounterServer do
     github_token = Keyword.fetch!(opts, :github_token)
     starting_point = Keyword.get(opts, :starting_point, "HEAD")
     commit_count = Keyword.get(opts, :commit_count, 10)
+    initial_line_counts = Keyword.get(opts, :initial_line_counts, %{})
 
     GenServer.start_link(__MODULE__,
       %__MODULE__{
@@ -50,7 +51,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
         repo_url: repo_url,
         github_token: github_token,
         starting_point: starting_point,
-        commit_count: commit_count
+        commit_count: commit_count,
+        line_counts: initial_line_counts
       },
       name: via_tuple(unique_code))
   end
@@ -132,14 +134,20 @@ defmodule CodeChanges.Servers.LineCounterServer do
             {:ok, commit_details} ->
               patches = PatchAnalyzer.analyze_patches(commit_details)
 
-              new_line_counts =
+              # Process line counts from this commit
+              commit_line_counts =
                 patches
-                |> Enum.reduce(state.line_counts, fn patch, acc ->
+                |> Enum.reduce(%{}, fn patch, acc ->
                   # Cada elemento em sizes_and_changes representa o tamanho de uma função
                   Enum.reduce(patch.sizes_and_changes, acc, fn function_size, inner_acc ->
                     Map.update(inner_acc, function_size, 1, &(&1 + 1))
                   end)
                 end)
+
+              # Merge with existing line counts
+              new_line_counts = Enum.reduce(commit_line_counts, state.line_counts, fn {size, count}, acc ->
+                Map.update(acc, size, count, &(&1 + count))
+              end)
 
               # Check if we've reached the first commit (no parent)
               {status, message} = if commit_details.parent_sha == nil do

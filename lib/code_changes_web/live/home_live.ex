@@ -29,7 +29,8 @@ defmodule CodeChangesWeb.HomeLive do
            repo_url: repo["url"],
            github_token: repo["token"],
            starting_point: repo["starting_point"],
-           commit_count: String.to_integer(repo["commit_count"])
+           commit_count: String.to_integer(repo["commit_count"]),
+           initial_line_counts: socket.assigns.line_counts
          ) do
       {:ok, _pid} ->
         if connected?(socket) do
@@ -79,11 +80,6 @@ defmodule CodeChangesWeb.HomeLive do
       }
     end
 
-    # Only accumulate line counts from previous analysis
-    updated_line_counts = Enum.reduce(state.line_counts, socket.assigns.line_counts, fn {lines, count}, acc ->
-      Map.update(acc, lines, count, &(&1 + count))
-    end)
-
     # Only increment total_commits_processed when commits_processed increases
     new_commits = max(0, state.commits_processed - socket.assigns.commits_processed)
 
@@ -93,7 +89,7 @@ defmodule CodeChangesWeb.HomeLive do
      |> assign(:current_commit, current_commit)
      |> assign(:commits_processed, state.commits_processed)
      |> assign(:total_commits_processed, socket.assigns.total_commits_processed + new_commits)
-     |> assign(:line_counts, updated_line_counts)}
+     |> assign(:line_counts, state.line_counts)}
   end
 
   def handle_info({:status_changed, status, message}, socket) do
@@ -137,6 +133,15 @@ defmodule CodeChangesWeb.HomeLive do
     case Regex.run(~r/github\.com\/([^\/]+\/[^\/]+)(?:\.git)?/, url) do
       [_, repo] -> repo
       _ -> "unknown/repo"
+    end
+  end
+
+  defp get_analysis_button_text(status, line_counts) do
+    cond do
+      status == :idle and map_size(line_counts) == 0 -> "Start Analysis"
+      status == :idle -> "Continue Analysis"
+      status == :running -> "Analyzing..."
+      true -> "Continue Analysis"
     end
   end
 end
