@@ -7,7 +7,7 @@ import Config
 # before starting your production server.
 config :code_changes, CodeChangesWeb.Endpoint,
   url: [host: "code-changes.onrender.com", port: 443, scheme: "https"],
-  check_origin: ["https://code-changes.onrender.com"],
+  check_origin: ["https://strange-sweaty-damselfly.gigalixirapp.com"],
   cache_static_manifest: "priv/static/cache_manifest.json",
   force_ssl: [rewrite_on: [:x_forwarded_proto]]
 
