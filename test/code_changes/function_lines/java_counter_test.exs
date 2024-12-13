@@ -110,7 +110,7 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
       }
       """
 
-      assert JavaCounter.count_lines(code, 1, 13) == [1, 2, 0]
+      assert JavaCounter.count_lines(code, 1, 13) == [1, 2]
     end
 
     test "counts lines of functions in inner classes" do

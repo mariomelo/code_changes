@@ -7,7 +7,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
       code = """
       class Example {
         private var name: String = ""
-        
+
         fun setName(name: String) {
           this.name = name
         }
@@ -21,7 +21,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
       code = """
       class Example {
         private var name: String = ""
-        
+
         fun setName(name: String) {
           this.name = name
           println(name)
@@ -30,7 +30,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
         fun getName(): String {
           return name
         }
-        
+
         private fun notifyListeners() {
           listeners?.forEach { it.notify() }
         }
@@ -61,7 +61,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
         fun setName(name: String) {
           // Update the name
           this.name = name
-          
+
           /* Notify all listeners
              about the change */
           notifyListeners()
@@ -78,7 +78,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
         fun method1() {
           doSomething()
         }
-        
+
         fun method2()
         {
           doSomething()
@@ -88,19 +88,19 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
       }
       """
 
-      assert KotlinCounter.count_lines(code, 1, 12) == [1, 1, 0]
+      assert KotlinCounter.count_lines(code, 1, 12) == [1, 1]
     end
 
     test "handles extension functions and properties" do
       code = """
       class Example {
         private val listeners = mutableListOf<Listener>()
-        
+
         val isValid: Boolean
           get() {
             return name.isNotEmpty()
           }
-        
+
         fun String.validate() {
           require(isNotEmpty()) { "Name cannot be empty" }
           require(length <= 100) { "Name too long" }
@@ -119,7 +119,7 @@ defmodule CodeChanges.FunctionLines.KotlinCounterTest do
             prepareItem(item)
             callback(item)
           }
-          
+
           runBlocking {
             launch {
               processAsync()

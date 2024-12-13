@@ -24,6 +24,7 @@ defmodule CodeChanges.FunctionLines.BaseCounter do
       |> Enum.filter(&(opts[:is_countable_line?].(&1)))
       |> length()
     end)
+    |> Enum.filter(&(&1 > 0))
   end
 
   defp find_functions(lines, opts) do

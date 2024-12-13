@@ -14,7 +14,6 @@ defmodule CodeChanges.FunctionLines.JavaCounter do
       is_function_start?: &is_function_start?/1,
       is_countable_line?: &is_countable_line?/1
     )
-    |> Enum.filter(&(&1 > 0))  # Remove funções com 0 linhas
   end
 
   defp is_function_start?(line) do

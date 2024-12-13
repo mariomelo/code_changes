@@ -1,11 +1,27 @@
 defmodule CodeChanges.Github.Client do
   @moduledoc """
-  Cliente para interagir com a API do GitHub.
+  Client to interact with the GitHub API.
   """
   @github_api_url "https://api.github.com"
 
-  # Extensões de arquivo suportadas para análise
+  # Supported file extensions for analysis
   @supported_extensions ~w(.java .kt .kts)
+
+  # Test file patterns
+  @test_patterns [
+    ~r/\/test\//,           # Standard test directory
+    ~r/\/tests\//,          # Alternative test directory
+    ~r/Test\.java$/,        # Java test files ending with Test
+    ~r/Tests\.java$/,       # Java test files ending with Tests
+    ~r/IT\.java$/,         # Integration test files
+    ~r/TestCase\.java$/,   # TestCase files
+    ~r/Spec\.kt$/,         # Kotlin spec files
+    ~r/Test\.kt$/,         # Kotlin test files
+    ~r/Tests\.kt$/,        # Kotlin test files
+    ~r/IT\.kt$/,          # Kotlin integration test files
+    ~r/androidTest\//,     # Android test directory
+    ~r/src\/test\//        # Maven/Gradle test directory
+  ]
 
   require Logger
 
@@ -21,14 +37,22 @@ defmodule CodeChanges.Github.Client do
   defp filter_commit_files(commit_details) do
     filtered_files = commit_details.files
                     |> Enum.filter(fn file ->
-                      # Pegar a extensão do arquivo
+                      # Get file extension
                       ext = Path.extname(file.filename)
-                      # Verificar se é uma extensão suportada e se o arquivo foi modificado
-                      ext in @supported_extensions and file.status == "modified"
+                      # Check if it's a supported extension, file was modified, and not a test file
+                      ext in @supported_extensions and 
+                      file.status == "modified" and
+                      not is_test_file?(file.filename)
                     end)
 
-    # Retornar o commit_details atualizado com apenas os arquivos filtrados
+    # Return updated commit_details with only filtered files
     {:ok, %{commit_details | files: filtered_files}}
+  end
+
+  defp is_test_file?(filename) do
+    Enum.any?(@test_patterns, fn pattern ->
+      Regex.match?(pattern, filename)
+    end)
   end
 
   defp parse_commit_details(repo, api_key, commit_sha) do

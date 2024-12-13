@@ -65,7 +65,7 @@ defmodule CodeChanges.Github.PatchAnalyzer do
     commit_details.files
     |> Enum.map(fn file ->
       original_file_content = fetch_original_file_content(file.raw_url, commit_details.parent_sha)
-      
+
       # Only try to extract patch content if we have a patch
       lines_changed = if file.patch do
         extract_patch_content(file.patch)
