@@ -71,8 +71,8 @@ Git patch showing changes:
 ```
 
 Our analyzer would report:
-- `processData`: 5 lines (including lambda bodies, +1 line changed)
-- `cleanupData`: 2 lines (+1 line changed)
+- `processData`: 7 lines (including lambda bodies)
+- `cleanupData`: 1 line
 
 ## Getting Started
 
