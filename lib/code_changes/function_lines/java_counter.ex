@@ -14,6 +14,7 @@ defmodule CodeChanges.FunctionLines.JavaCounter do
       is_function_start?: &is_function_start?/1,
       is_countable_line?: &is_countable_line?/1
     )
+    |> Enum.filter(&(&1 > 0))  # Remove funções com 0 linhas
   end
 
   defp is_function_start?(line) do
@@ -26,8 +27,9 @@ defmodule CodeChanges.FunctionLines.JavaCounter do
       # Regular method
       Regex.match?(~r/^(?:public|private|protected|static|\s)*[\w\<\>\[\]]+\s+\w+\s*\([^)]*\)\s*\{?/, line) -> true
 
-      # Anonymous class method
-      Regex.match?(~r/^\s*(?:@Override\s*)?(?:public|private|protected|static|\s)*[\w\<\>\[\]]+\s+\w+\s*\([^)]*\)\s*\{?/, line) -> true
+      # Anonymous class method (but not lambda or anonymous inner class)
+      Regex.match?(~r/^\s*(?:@Override\s*)?(?:public|private|protected|static|\s)*[\w\<\>\[\]]+\s+\w+\s*\([^)]*\)\s*\{?/, line) and
+      not (String.contains?(line, "->") or String.contains?(line, "new")) -> true
       
       true -> false
     end
@@ -42,7 +44,8 @@ defmodule CodeChanges.FunctionLines.JavaCounter do
       String.starts_with?(line, "/*") or         # Start of multi-line comment
       String.starts_with?(line, "*/") or         # End of multi-line comment
       String.equivalent?(line, "{") or           # Opening brace only
-      String.equivalent?(line, "}")              # Closing brace only
-    ) and not String.contains?(line, "@Override") # Exclude annotations
+      String.equivalent?(line, "}") or           # Closing brace only
+      String.starts_with?(line, "@")             # Exclude all annotations
+    )
   end
 end

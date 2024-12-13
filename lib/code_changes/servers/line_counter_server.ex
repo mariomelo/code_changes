@@ -60,7 +60,15 @@ defmodule CodeChanges.Servers.LineCounterServer do
   end
 
   def get_state(server) do
-    GenServer.call(server, :get_state)
+    GenServer.call(via_tuple(server), :get_state)
+  end
+
+  def process_line_counts(server, counts) when is_list(counts) do
+    GenServer.cast(via_tuple(server), {:process_line_counts, counts})
+  end
+
+  def stop(server) do
+    GenServer.stop(via_tuple(server))
   end
 
   # Server Callbacks
@@ -81,6 +89,19 @@ defmodule CodeChanges.Servers.LineCounterServer do
     send(self(), :process_commit)
     broadcast_status(state.unique_code, :running)
     {:noreply, %{state | status: :running}}
+  end
+
+  @impl true
+  def handle_cast({:process_line_counts, counts}, state) do
+    new_line_counts =
+      counts
+      |> Enum.reduce(state.line_counts, fn count, acc ->
+        Map.update(acc, count, 1, &(&1 + 1))
+      end)
+
+    new_state = %{state | line_counts: new_line_counts}
+    broadcast_state(state.unique_code, new_state)
+    {:noreply, new_state}
   end
 
   @impl true
@@ -141,7 +162,8 @@ defmodule CodeChanges.Servers.LineCounterServer do
               {:noreply, new_state}
 
             {:error, reason} ->
-              error_state = handle_error(state, "Error fetching commit details: #{inspect(reason)}")
+              error_message = "Error while trying to analyze commit #{commit_ref} from #{state.repo_url}: #{inspect(reason)}"
+              error_state = handle_error(state, error_message)
               {:noreply, error_state}
           end
       end

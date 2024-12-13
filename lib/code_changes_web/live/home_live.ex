@@ -40,6 +40,7 @@ defmodule CodeChangesWeb.HomeLive do
          |> assign(:commit_count, commit_count)
          |> assign(:server_pid, server_pid)
          |> assign(:unique_code, unique_code)
+         |> assign(:error, nil)  # Limpa o erro ao começar nova análise
          |> assign(:status, :running)}
 
       {:error, reason} ->

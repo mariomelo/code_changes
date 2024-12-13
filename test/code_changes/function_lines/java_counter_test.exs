@@ -214,5 +214,40 @@ defmodule CodeChanges.FunctionLines.JavaCounterTest do
       assert JavaCounter.count_lines(code, 28, 28) == [8]
       assert JavaCounter.count_lines(code, 39, 42) == [4]
     end
+
+    test "handles changes inside lambda functions" do
+      code = """
+        public abstract class TransactionContextManager {
+
+        private TransactionContextManager() {
+        }
+
+        /**
+        * Obtain the current {@link TransactionContext} from the subscriber context or the
+        * transactional context holder. Context retrieval fails with NoTransactionException
+        * if no context or context holder is registered.
+        * @return the current {@link TransactionContext}
+        * @throws NoTransactionException if no TransactionContext was found in the
+        * subscriber context or no context found in a holder
+        */
+        public static Mono<TransactionContext> currentContext() {
+          return Mono.deferContextual(ctx -> {
+            if (ctx.hasKey(TransactionContext.class)) {
+              return Mono.just(ctx.get(TransactionContext.class));
+            }
+            if (ctx.hasKey(TransactionContextHolder.class)) {
+              TransactionContextHolder holder = ctx.get(TransactionContextHolder.class);
+              if (holder.hasContext()) {
+                return Mono.just(holder.currentContext());
+              }
+            }
+            return Mono.error(new NoTransactionInContextException());
+          });
+        }
+      """
+
+      # The main function englobes the lamdda and anonymous functions
+      assert JavaCounter.count_lines(code, 25, 25) == [9]
+    end
   end
 end

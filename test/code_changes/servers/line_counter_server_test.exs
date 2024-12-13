@@ -1,11 +1,6 @@
 defmodule CodeChanges.Servers.LineCounterServerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias CodeChanges.Servers.LineCounterServer
-
-  setup do
-    start_supervised!({Registry, keys: :unique, name: CodeChanges.ServerRegistry})
-    :ok
-  end
 
   describe "start_link/1" do
     test "starts the server with correct initial state" do
