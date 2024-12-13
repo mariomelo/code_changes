@@ -8,19 +8,24 @@ defmodule CodeChangesWeb.HomeLive do
      socket
      |> assign(:repo_url, "https://github.com/mariomelo/code_changes_sample")
      |> assign(:github_token, System.get_env("GITHUB_TOKEN", ""))
+     |> assign(:starting_point, "HEAD")
+     |> assign(:commit_count, 10)
+     |> assign(:commits_processed, 0)
      |> assign(:status, :idle)
      |> assign(:error, nil)
      |> assign(:current_commit, nil)
      |> assign(:line_counts, %{})}
   end
 
-  def handle_event("analyze", %{"repo" => %{"url" => url, "token" => token}}, socket) do
+  def handle_event("analyze", %{"repo" => %{"url" => url, "token" => token, "starting_point" => starting_point, "commit_count" => commit_count}}, socket) do
     unique_code = generate_unique_code()
 
     case LineCounterServer.start_link(
            unique_code: unique_code,
            repo_url: url,
-           github_token: token
+           github_token: token,
+           starting_point: starting_point,
+           commit_count: String.to_integer(commit_count)
          ) do
       {:ok, server_pid} ->
         if connected?(socket) do
@@ -31,6 +36,8 @@ defmodule CodeChangesWeb.HomeLive do
          socket
          |> assign(:repo_url, url)
          |> assign(:github_token, token)
+         |> assign(:starting_point, starting_point)
+         |> assign(:commit_count, commit_count)
          |> assign(:server_pid, server_pid)
          |> assign(:unique_code, unique_code)
          |> assign(:status, :running)}
@@ -60,6 +67,7 @@ defmodule CodeChangesWeb.HomeLive do
      socket
      |> assign(:status, state.status)
      |> assign(:current_commit, current_commit)
+     |> assign(:commits_processed, state.commits_processed)
      |> assign(:line_counts, state.line_counts)}
   end
 

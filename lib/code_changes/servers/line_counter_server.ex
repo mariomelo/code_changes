@@ -14,6 +14,9 @@ defmodule CodeChanges.Servers.LineCounterServer do
     unique_code: String.t(),
     repo_url: String.t(),
     github_token: String.t(),
+    starting_point: String.t(),
+    commit_count: integer(),
+    commits_processed: integer(),
     line_counts: %{integer() => integer()},
     modified_files: [String.t()]
   }
@@ -27,6 +30,9 @@ defmodule CodeChanges.Servers.LineCounterServer do
             unique_code: nil,
             repo_url: nil,
             github_token: nil,
+            starting_point: "HEAD",
+            commit_count: 10,
+            commits_processed: 0,
             line_counts: %{},
             modified_files: []
 
@@ -35,12 +41,16 @@ defmodule CodeChanges.Servers.LineCounterServer do
     unique_code = Keyword.fetch!(opts, :unique_code)
     repo_url = Keyword.fetch!(opts, :repo_url)
     github_token = Keyword.fetch!(opts, :github_token)
+    starting_point = Keyword.get(opts, :starting_point, "HEAD")
+    commit_count = Keyword.get(opts, :commit_count, 10)
 
     GenServer.start_link(__MODULE__,
       %__MODULE__{
         unique_code: unique_code,
         repo_url: repo_url,
-        github_token: github_token
+        github_token: github_token,
+        starting_point: starting_point,
+        commit_count: commit_count
       },
       name: via_tuple(unique_code))
   end
@@ -80,47 +90,61 @@ defmodule CodeChanges.Servers.LineCounterServer do
 
   @impl true
   def handle_info(:process_commit, state) do
-    # Extrair owner/repo da URL do GitHub
-    repo = case Regex.run(~r/github\.com\/([^\/]+\/[^\/]+)/, state.repo_url) do
-      [_, repo] -> repo
-      _ -> nil
-    end
+    if state.commits_processed >= state.commit_count do
+      {:noreply, %{state | status: :idle}}
+    else
+      # Extrair owner/repo da URL do GitHub
+      repo = case Regex.run(~r/github\.com\/([^\/]+\/[^\/]+)/, state.repo_url) do
+        [_, repo] -> repo
+        _ -> nil
+      end
 
-    case repo do
-      nil ->
-        error_state = handle_error(state, "URL do repositório inválida")
-        {:noreply, error_state}
+      case repo do
+        nil ->
+          error_state = handle_error(state, "URL do repositório inválida")
+          {:noreply, error_state}
 
-      repo ->
-        # Use "HEAD" if we don't have a last_sha
-        commit_ref = state.last_sha || "HEAD"
-        case Client.getCommitDetails(repo, state.github_token, commit_ref) do
-          {:ok, commit_details} ->
-            patches = PatchAnalyzer.analyze_patches(commit_details)
+        repo ->
+          # Use starting_point if we don't have a last_sha
+          commit_ref = state.last_sha || state.starting_point
+          case Client.getCommitDetails(repo, state.github_token, commit_ref) do
+            {:ok, commit_details} ->
+              patches = PatchAnalyzer.analyze_patches(commit_details)
 
-            new_line_counts =
-              patches
-              |> Enum.reduce(state.line_counts, fn patch, acc ->
-                update_line_counts(acc, patch.sizes_and_changes)
-              end)
+              new_line_counts =
+                patches
+                |> Enum.reduce(state.line_counts, fn patch, acc ->
+                  # Cada elemento em sizes_and_changes representa o tamanho de uma função
+                  Enum.reduce(patch.sizes_and_changes, acc, fn function_size, inner_acc ->
+                    Map.update(inner_acc, function_size, 1, &(&1 + 1))
+                  end)
+                end)
 
-            updated_state = %{state |
-              status: :idle,
-              current_sha: commit_details.sha,
-              current_author: get_in(commit_details, ["commit", "author", "name"]),
-              commit_date: parse_github_date(get_in(commit_details, ["commit", "author", "date"])),
-              last_sha: commit_details.parent_sha,
-              line_counts: new_line_counts,
-              modified_files: Enum.map(commit_details.files, & &1.filename)
-            }
+              new_state = %{state |
+                current_sha: commit_details.sha,
+                current_author: get_in(commit_details, ["commit", "author", "name"]),
+                commit_date: parse_date(get_in(commit_details, ["commit", "author", "date"])),
+                last_sha: commit_details.parent_sha,
+                line_counts: new_line_counts,
+                modified_files: Enum.map(commit_details.files, & &1.filename),
+                commits_processed: state.commits_processed + 1,
+                status: :idle
+              }
 
-            broadcast_state_update(updated_state)
-            {:noreply, updated_state}
+              broadcast_state(state.unique_code, new_state)
+              
+              # Se ainda não processamos todos os commits, continua automaticamente
+              if new_state.commits_processed < new_state.commit_count do
+                Process.send_after(self(), :process_commit, 100)  # pequeno delay para não sobrecarregar
+              end
+              
+              {:noreply, new_state}
 
-          {:error, reason} ->
-            error_state = handle_error(state, "Erro ao buscar commit: #{inspect(reason)}")
-            {:noreply, error_state}
-        end
+            {:error, reason} ->
+              error_state = handle_error(state, "Error fetching commit details: #{inspect(reason)}")
+              {:noreply, error_state}
+          end
+      end
     end
   end
 
@@ -135,10 +159,10 @@ defmodule CodeChanges.Servers.LineCounterServer do
     {:via, Registry, {CodeChanges.ServerRegistry, unique_code}}
   end
 
-  defp parse_github_date(nil), do: nil
-  defp parse_github_date(date_string) do
+  defp parse_date(nil), do: nil
+  defp parse_date(date_string) do
     case DateTime.from_iso8601(date_string) do
-      {:ok, datetime, _offset} -> datetime
+      {:ok, datetime} -> datetime
       _ -> nil
     end
   end
@@ -169,6 +193,22 @@ defmodule CodeChanges.Servers.LineCounterServer do
       CodeChanges.PubSub,
       "line_counter:#{unique_code}",
       {:status_changed, status, message}
+    )
+  end
+
+  defp broadcast_state(unique_code, state) do
+    Phoenix.PubSub.broadcast(
+      CodeChanges.PubSub,
+      "line_counter:#{unique_code}",
+      {:state_updated, %{
+        status: state.status,
+        current_sha: state.current_sha,
+        current_author: state.current_author,
+        commit_date: state.commit_date,
+        line_counts: state.line_counts,
+        modified_files: state.modified_files,
+        commits_processed: state.commits_processed
+      }}
     )
   end
 end

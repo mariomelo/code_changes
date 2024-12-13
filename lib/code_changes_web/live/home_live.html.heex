@@ -16,6 +16,14 @@
                 <label for="github-token" class="block text-sm font-medium text-gray-700">GitHub Token</label>
                 <input type="password" name="repo[token]" id="github-token" value={@github_token} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
               </div>
+              <div>
+                <label for="starting-point" class="block text-sm font-medium text-gray-700">Starting point (Commit SHA)</label>
+                <input type="text" name="repo[starting_point]" id="starting-point" value="HEAD" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              </div>
+              <div>
+                <label for="commit-count" class="block text-sm font-medium text-gray-700">Number of Commits to evaluate</label>
+                <input type="number" name="repo[commit_count]" id="commit-count" value="10" min="1" max="100" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              </div>
               <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 Start Analysis
               </button>
@@ -71,7 +79,8 @@
       <!-- Line Count Distribution Card -->
       <%= if map_size(@line_counts) > 0 do %>
         <div class="bg-white rounded-lg shadow-sm p-6">
-          <h2 class="text-lg font-medium text-gray-900 mb-4">Function Size vs Change Distribution</h2>
+          <h2 class="text-lg font-medium text-gray-900 mb-1">Function Size vs Change Distribution</h2>
+          <p class="text-sm text-gray-600 mb-4">Results after analyzing <%= @commits_processed %> commits</p>
           <div class="space-y-2">
             <%= for {lines, count} <- get_sorted_counts(@line_counts) do %>
               <div class="relative">
@@ -88,5 +97,8 @@
         </div>
       <% end %>
     </div>
+    <footer class="mt-12 text-center pb-8">
+      <p class="text-gray-600">Created by <a href="https://changingcode.substack.com/" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline transition-colors">Mário Melo</a></p>
+    </footer>
   </div>
 </div>
