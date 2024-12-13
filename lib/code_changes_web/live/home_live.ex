@@ -2,6 +2,7 @@ defmodule CodeChangesWeb.HomeLive do
   use CodeChangesWeb, :live_view
 
   alias CodeChanges.Servers.LineCounterServer
+  alias CodeChanges.Exports.CSVExporter
 
   def mount(_params, _session, socket) do
     {:ok,
@@ -70,6 +71,17 @@ defmodule CodeChangesWeb.HomeLive do
 
   def handle_event("switch_table_view", %{"view" => view}, socket) do
     {:noreply, assign(socket, :selected_table_view, view)}
+  end
+
+  def handle_event("download_csv", _params, socket) do
+    csv_content = CSVExporter.generate_csv(socket.assigns.line_counts)
+    
+    {:noreply,
+     socket
+     |> push_event("download_csv", %{
+       filename: "code_changes_analysis.csv",
+       content: csv_content
+     })}
   end
 
   def handle_info({:state_updated, state}, socket) do

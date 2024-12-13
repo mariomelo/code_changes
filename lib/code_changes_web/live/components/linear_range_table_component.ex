@@ -1,4 +1,4 @@
-defmodule CodeChangesWeb.LinearRangeTableComponent do
+defmodule CodeChangesWeb.Live.Components.LinearRangeTableComponent do
   use CodeChangesWeb, :live_component
 
   def update(assigns, socket) do

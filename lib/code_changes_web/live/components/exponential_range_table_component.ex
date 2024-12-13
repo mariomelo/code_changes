@@ -1,4 +1,4 @@
-defmodule CodeChangesWeb.ExponentialRangeTableComponent do
+defmodule CodeChangesWeb.Live.Components.ExponentialRangeTableComponent do
   use CodeChangesWeb, :live_component
 
   def update(assigns, socket) do
